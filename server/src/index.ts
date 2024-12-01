@@ -1,22 +1,20 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
-import mainRouter from './router/mainRouter'
+
 import 'dotenv/config'
 import cors from 'cors'
-import multer from 'multer'
+
+
+import mainRouter from './router/mainRouter'
+
 
 require('dotenv').config()
-
-
-
 
 
 const app = express()
 app.use(cors({
     origin:'*'
 }))
-
-
 
 
 app.use(express.json())

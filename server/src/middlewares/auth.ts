@@ -1,4 +1,4 @@
-import { config } from 'dotenv';
+
 import {Request,Response, NextFunction } from 'express'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { ApiError } from '../utils/errorHandler';
@@ -6,7 +6,7 @@ require('dotenv').config()
 
 
 interface AuthenticatedRequest extends Request {
-    authorization?: string | JwtPayload 
+    id?: string | JwtPayload 
 }
 
 const auth = async(req:Request, res:Response, next:NextFunction) =>{
@@ -17,12 +17,13 @@ const auth = async(req:Request, res:Response, next:NextFunction) =>{
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string);
 
          if (typeof decodedToken === 'string') {
-            throw new ApiError(401, "Invalid token format", false);        }
+            throw new ApiError(401, "Invalid token format", false);
+         }
 
         if(!decodedToken) {
             throw new ApiError(401, "Unatuhorized", false)
         }
-        (req as AuthenticatedRequest).authorization = decodedToken?.id; //type assertion 
+        (req as AuthenticatedRequest).id = decodedToken?.id; //type assertion 
         next()
     } catch (error) {
         throw new ApiError(500, "Something went wrong", false)

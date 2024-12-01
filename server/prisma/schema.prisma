@@ -13,38 +13,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  username     String      @unique
+  password     String
+  firstName    String
+  lastName     String
+  dateofBirth  String?
+  image        String?
+  post         Post[]
+  refreshToken String?
+  userDetail   UserDetail?
+}
 
-model User{
-  id            String      @id @default(uuid())
-  email         String      @unique
-  username      String      @unique
-  password      String
-  firstName     String
-  lastName      String
-  dateofBirth   String? 
-  image         String?
-  post          Post[]
-  refreshToken  String?
-  userDetail    UserDetail?
+model Otp {
+  id          String @id @default(uuid())
+  email       String  
+  otp         Int    @unique
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
 }
 
 model UserDetail {
-  id            String    @id @default(uuid())
-  bio           String
-  userRelId     String    @unique
-  userRel       User      @relation(fields: [userRelId], references: [id])
+  id          String  @id @default(uuid())
+  bio         String
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String  @unique
 }
 
-model Post{
-  id            String    @id @default(uuid())
-  title         String
-  description   String
-  author        User      @relation(fields: [authorId], references: [id])
-  authorId      String
-  published     Boolean   @default(false)
-  image         String[]
-  likes         Int?
-  tag           String[]
-  createdAt     DateTime  @default(now())        
+model Post {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  published   Boolean  @default(false)
+  image       String[]
+  likes       Int?
+  tag         String[]
+  createdAt   DateTime @default(now())
 }
-

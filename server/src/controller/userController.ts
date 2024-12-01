@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import  { PrismaClient }  from '@prisma/client'
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 import { uploadOnCloudinary } from '../utils/cloudinaryUpload';
@@ -14,17 +14,40 @@ const prisma = new PrismaClient()
 
 
 interface AuthenticatedRequest extends Request {
-    authorization?: string;
+    id?: string;
 }
+
+
 
 
 export const signUp = asyncHandler( async(req:Request, res:Response) =>{
 
      try {
-           const {username, email, password, firstName, lastName, dateofBirth} = req.body.formValue
+           const {username, email, password, firstName, lastName, dateofBirth, otp} = req.body.formValue
+
+           const otpVerify = await prisma.otp.findFirst({
+                where:{
+                    email:email
+                },
+                orderBy:{
+                    createdAt:'desc'
+                },
+                select:{
+                    otp:true
+                }
+           })
+
+           const userOtp = parseInt(otp)
+
+           if(userOtp !== otpVerify?.otp){
+                throw new ApiError(401, "Otp verification failed", false)
+           }
+
            const saltRounds = 10;
            const salt = bcrypt.genSaltSync(saltRounds);
            const hashepassword = bcrypt.hashSync(password, salt);
+
+
    
            const user = await prisma.user.create({
                data:{
@@ -41,9 +64,10 @@ export const signUp = asyncHandler( async(req:Request, res:Response) =>{
                throw new ApiError(402, 'failed to create account', false)
            }
    
-           return res.status(200).json(
+            res.status(200).json(
                new ApiResponse(true, "Account created Successfully",{})
            )
+           return
      } catch (error) {
             throw new ApiError(500, 'Something went terribly wrong', false)
      }
@@ -111,22 +135,48 @@ export const signIn = async(req:Request, res:Response) =>{
     }
 }
 
-// export const updateAvatar = async(req:Request, res:Response) =>{
-//     const user = req?.userId
-// }
 
 export const updateUserAvatar = async(req:Request, res:Response) =>{
-    const authorizationToken = (req as AuthenticatedRequest).authorization;
-   try {
+    const userId = (req as AuthenticatedRequest).id;
 
-     if (!authorizationToken) {
-         res.status(403).json({ success: false, message: 'Forbidden' });
-         return 
+   try {
+    
+    if (!userId) {
+        res.status(403).json({ success: false, message: 'Forbidden' });
+        return 
+   }
+
+    const avatar = req.file?.path
+
+    if(!avatar){
+        throw new ApiError(404, "Failed to upload file", false)
+    }
+    const uploadAvatar = await uploadOnCloudinary(avatar)
+
+    if(!uploadAvatar){
+        throw new ApiError(402,"failed to update image", false) 
     }
 
-    res.status(200).json(new ApiResponse(true, "Sent token ", authorizationToken))
+    const updateUserAvatar = await prisma.user.update({
+        where:{
+            id:userId
+        },
+        data:{
+            image:uploadAvatar.secure_url    
+        },
+        select:{
+            image:true
+        }
+    })
+    res.status(200).json(new ApiResponse(true, "Sent token ", {updateUserAvatar}))
      return;
- 
+
    } catch (error) {
          new ApiError(500, 'Something went wrong', false)
-   }}
+   }
+}
+
+export const deleteUser = asyncHandler(async(req:Request,res:Response)=>{
+    const {email} = req.body
+})
+
